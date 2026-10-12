@@ -286,3 +286,104 @@ int libcreg_key_hierarchy_entry_read_data(
 	return( 1 );
 }
 
+/* Writes a key hierarchy entry
+ * Returns 1 if successful or -1 on error
+ */
+int libcreg_key_hierarchy_entry_write_data(
+     libcreg_key_hierarchy_entry_t *key_hierarchy_entry,
+     uint8_t *data,
+     size_t data_size,
+     libcerror_error_t **error )
+{
+	static char *function = "libcreg_key_hierarchy_entry_write_data";
+
+	if( key_hierarchy_entry == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid key hierarchy entry.",
+		 function );
+
+		return( -1 );
+	}
+	if( data == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid data.",
+		 function );
+
+		return( -1 );
+	}
+	if( data_size != sizeof( creg_key_hierarchy_entry_t ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid data size value out of bounds.",
+		 function );
+
+		return( -1 );
+	}
+	if( memory_set(
+	     data,
+	     0,
+	     data_size ) == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_MEMORY,
+		 LIBCERROR_MEMORY_ERROR_SET_FAILED,
+		 "%s: unable to clear data.",
+		 function );
+
+		return( -1 );
+	}
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_key_hierarchy_entry_t *) data )->name_hash,
+	 key_hierarchy_entry->name_hash );
+
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_key_hierarchy_entry_t *) data )->next_free_key_hierarchy_entry_offset,
+	 0xffffffffUL );
+
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_key_hierarchy_entry_t *) data )->parent_key_offset,
+	 key_hierarchy_entry->parent_key_offset );
+
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_key_hierarchy_entry_t *) data )->sub_key_offset,
+	 key_hierarchy_entry->sub_key_offset );
+
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_key_hierarchy_entry_t *) data )->next_key_offset,
+	 key_hierarchy_entry->next_key_offset );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_key_hierarchy_entry_t *) data )->key_name_entry_number,
+	 key_hierarchy_entry->key_name_entry_number );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_key_hierarchy_entry_t *) data )->data_block_number,
+	 key_hierarchy_entry->data_block_number );
+
+#if defined( HAVE_DEBUG_OUTPUT )
+	if( libcnotify_verbose != 0 )
+	{
+		libcnotify_printf(
+		 "%s: key hierarchy entry:\n",
+		 function );
+		libcnotify_print_data(
+		 data,
+		 sizeof( creg_key_hierarchy_entry_t ),
+		 0 );
+	}
+#endif
+	return( 1 );
+}
+

@@ -447,6 +447,157 @@ on_error:
 	return( -1 );
 }
 
+/* Writes a value entry
+ * Returns 1 if successful or -1 on error
+ */
+int libcreg_value_entry_write_data(
+     libcreg_value_entry_t *value_entry,
+     uint8_t *data,
+     size_t data_size,
+     libcerror_error_t **error )
+{
+	static char *function = "libcreg_value_entry_write_data";
+	size_t data_offset    = 0;
+
+	if( value_entry == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid value entry.",
+		 function );
+
+		return( -1 );
+	}
+	if( ( value_entry->name == NULL )
+	 && ( value_entry->name_size > 0 ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+		 "%s: invalid value entry - missing name.",
+		 function );
+
+		return( -1 );
+	}
+	if( ( value_entry->data == NULL )
+	 && ( value_entry->data_size > 0 ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+		 "%s: invalid value entry - missing data.",
+		 function );
+
+		return( -1 );
+	}
+	if( data == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid data.",
+		 function );
+
+		return( -1 );
+	}
+	if( data_size != ( sizeof( creg_value_entry_t ) + value_entry->name_size + value_entry->data_size ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid data size value out of bounds.",
+		 function );
+
+		return( -1 );
+	}
+	if( memory_set(
+	     data,
+	     0,
+	     sizeof( creg_value_entry_t ) ) == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_MEMORY,
+		 LIBCERROR_MEMORY_ERROR_SET_FAILED,
+		 "%s: unable to clear data.",
+		 function );
+
+		return( -1 );
+	}
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_value_entry_t *) data )->data_type,
+	 value_entry->type );
+
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_value_entry_t *) data )->unknown1,
+	 0xffffffffUL );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_value_entry_t *) data )->name_size,
+	 value_entry->name_size );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_value_entry_t *) data )->data_size,
+	 value_entry->data_size );
+
+	data_offset = sizeof( creg_value_entry_t );
+
+	if( value_entry->name_size > 0 )
+	{
+		if( memory_copy(
+		     &( data[ data_offset ] ),
+		     value_entry->name,
+		     (size_t) value_entry->name_size ) == NULL )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_MEMORY,
+			 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
+			 "%s: unable to copy name.",
+			 function );
+
+			return( -1 );
+		}
+		data_offset += value_entry->name_size;
+	}
+	if( value_entry->data_size > 0 )
+	{
+		if( memory_copy(
+		     &( data[ data_offset ] ),
+		     value_entry->data,
+		     (size_t) value_entry->data_size ) == NULL )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_MEMORY,
+			 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
+			 "%s: unable to copy data.",
+			 function );
+
+			return( -1 );
+		}
+	}
+#if defined( HAVE_DEBUG_OUTPUT )
+	if( libcnotify_verbose != 0 )
+	{
+		libcnotify_printf(
+		 "%s: value entry data:\n",
+		 function );
+		libcnotify_print_data(
+		 data,
+		 data_size,
+		 0 );
+	}
+#endif
+	return( 1 );
+}
+
 /* Retrieves the data size
  * Returns 1 if successful or -1 on error
  */

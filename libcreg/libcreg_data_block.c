@@ -571,6 +571,276 @@ on_error:
 	return( -1 );
 }
 
+/* Writes a data block
+ * Returns 1 if successful or -1 on error
+ */
+int libcreg_data_block_write_data(
+     libcreg_data_block_t *data_block,
+     uint8_t *data,
+     size_t data_size,
+     uint16_t data_block_index,
+     libcerror_error_t **error )
+{
+	libcreg_key_name_entry_t *key_name_entry = NULL;
+	static char *function                    = "libcreg_data_block_write_data";
+	size_t data_offset                       = 0;
+	int entry_index                          = 0;
+	int number_of_entries                    = 0;
+
+	if( data_block == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid data block.",
+		 function );
+
+		return( -1 );
+	}
+	if( data == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid data.",
+		 function );
+
+		return( -1 );
+	}
+	if( ( data_size < sizeof( creg_data_block_header_t ) )
+	 || ( data_size != (size_t) data_block->size ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid data size value out of bounds.",
+		 function );
+
+		return( -1 );
+	}
+	if( libcdata_array_get_number_of_entries(
+	     data_block->entries_array,
+	     &number_of_entries,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve number of entries.",
+		 function );
+
+		return( -1 );
+	}
+	if( ( number_of_entries <= 0 )
+	 || ( number_of_entries > (int) UINT16_MAX ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid number of entries value out of bounds.",
+		 function );
+
+		return( -1 );
+	}
+	if( memory_set(
+	     data,
+	     0,
+	     data_size ) == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_MEMORY,
+		 LIBCERROR_MEMORY_ERROR_SET_FAILED,
+		 "%s: unable to clear data.",
+		 function );
+
+		return( -1 );
+	}
+	data_offset = sizeof( creg_data_block_header_t );
+
+	for( entry_index = 0;
+	     entry_index < number_of_entries;
+	     entry_index++ )
+	{
+		if( libcdata_array_get_entry_by_index(
+		     data_block->entries_array,
+		     entry_index,
+		     (intptr_t **) &key_name_entry,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+			 "%s: unable to retrieve key name entry: %d.",
+			 function,
+			 entry_index );
+
+			return( -1 );
+		}
+		if( key_name_entry == NULL )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+			 "%s: missing key name entry: %d.",
+			 function,
+			 entry_index );
+
+			return( -1 );
+		}
+		if( (size_t) key_name_entry->size > ( data_size - data_offset ) )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+			 "%s: invalid key name entry: %d size value out of bounds.",
+			 function,
+			 entry_index );
+
+			return( -1 );
+		}
+		key_name_entry->offset = (uint32_t) data_offset;
+
+		if( libcreg_key_name_entry_write_data(
+		     key_name_entry,
+		     &( data[ data_offset ] ),
+		     (size_t) key_name_entry->size,
+		     data_block_index,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_IO,
+			 LIBCERROR_IO_ERROR_WRITE_FAILED,
+			 "%s: unable to write key name entry: %d.",
+			 function,
+			 entry_index );
+
+			return( -1 );
+		}
+		data_offset += key_name_entry->size;
+	}
+	data_block->used_size   = (uint32_t) data_offset;
+	data_block->unused_size = data_block->size - data_block->used_size;
+
+	if( data_block->unused_size > 0 )
+	{
+		if( data_block->unused_size < sizeof( creg_key_name_entry_t ) )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+			 "%s: invalid unused size value out of bounds.",
+			 function );
+
+			return( -1 );
+		}
+		byte_stream_copy_from_uint32_little_endian(
+		 ( (creg_key_name_entry_t *) &( data[ data_offset ] ) )->size,
+		 data_block->unused_size );
+
+		byte_stream_copy_from_uint16_little_endian(
+		 ( (creg_key_name_entry_t *) &( data[ data_offset ] ) )->index,
+		 0xffff );
+
+		byte_stream_copy_from_uint16_little_endian(
+		 ( (creg_key_name_entry_t *) &( data[ data_offset ] ) )->unknown1,
+		 0xffff );
+
+		byte_stream_copy_from_uint32_little_endian(
+		 ( (creg_key_name_entry_t *) &( data[ data_offset ] ) )->used_size,
+		 0xffffffffUL );
+	}
+	if( memory_copy(
+	     ( (creg_data_block_header_t *) data )->signature,
+	     creg_data_block_signature,
+	     4 ) == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_MEMORY,
+		 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
+		 "%s: unable to set signature.",
+		 function );
+
+		return( -1 );
+	}
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_data_block_header_t *) data )->size,
+	 data_block->size );
+
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_data_block_header_t *) data )->unused_size,
+	 data_block->unused_size );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_data_block_header_t *) data )->unknown1,
+	 0x0008 );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_data_block_header_t *) data )->index,
+	 data_block_index );
+
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_data_block_header_t *) data )->used_size,
+	 data_block->used_size );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_data_block_header_t *) data )->unknown2,
+	 (uint16_t) ( number_of_entries - 1 ) );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_data_block_header_t *) data )->unknown3,
+	 (uint16_t) number_of_entries );
+
+#if defined( HAVE_DEBUG_OUTPUT )
+	if( libcnotify_verbose != 0 )
+	{
+		libcnotify_printf(
+		 "%s: data block header:\n",
+		 function );
+		libcnotify_print_data(
+		 data,
+		 sizeof( creg_data_block_header_t ),
+		 0 );
+
+		libcnotify_printf(
+		 "%s: size\t\t\t\t\t: %" PRIu32 "\n",
+		 function,
+		 data_block->size );
+
+		libcnotify_printf(
+		 "%s: unused size\t\t\t\t: %" PRIu32 "\n",
+		 function,
+		 data_block->unused_size );
+
+		libcnotify_printf(
+		 "%s: index\t\t\t\t\t: %" PRIu16 "\n",
+		 function,
+		 data_block_index );
+
+		libcnotify_printf(
+		 "%s: used size\t\t\t\t: %" PRIu32 "\n",
+		 function,
+		 data_block->used_size );
+
+		libcnotify_printf(
+		 "\n" );
+	}
+#endif /* defined( HAVE_DEBUG_OUTPUT ) */
+
+	return( 1 );
+}
+
 /* Retrieves the number of key name entries
  * Returns 1 if successful or -1 on error
  */

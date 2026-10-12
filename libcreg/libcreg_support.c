@@ -50,6 +50,14 @@ int libcreg_get_access_flags_read(
 	return( (uint8_t) LIBCREG_ACCESS_FLAG_READ );
 }
 
+/* Returns the access flags for writing
+ */
+int libcreg_get_access_flags_write(
+     void )
+{
+	return( (uint8_t) LIBCREG_ACCESS_FLAG_WRITE );
+}
+
 /* Retrieves the narrow system string codepage
  * A value of 0 represents no codepage, UTF-8 encoding is used instead
  * Returns 1 if successful or -1 on error

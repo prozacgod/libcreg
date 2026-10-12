@@ -87,6 +87,13 @@ int libcreg_data_block_read_entries(
      int ascii_codepage,
      libcerror_error_t **error );
 
+int libcreg_data_block_write_data(
+     libcreg_data_block_t *data_block,
+     uint8_t *data,
+     size_t data_size,
+     uint16_t data_block_index,
+     libcerror_error_t **error );
+
 int libcreg_data_block_get_number_of_entries(
      libcreg_data_block_t *data_block,
      int *number_of_entries,

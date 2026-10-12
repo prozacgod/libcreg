@@ -21,6 +21,7 @@
 
 #include <common.h>
 #include <file_stream.h>
+#include <memory.h>
 #include <types.h>
 
 #if defined( HAVE_STDLIB_H ) || defined( WINAPI )
@@ -34,6 +35,17 @@
 #include "creg_test_unused.h"
 
 #include "../libcreg/libcreg_value_entry.h"
+
+/* Value entry of a SYSTEM.DAT created by the Windows 98 SE REGEDIT.EXE from:
+ *
+ * REGEDIT4
+ *
+ * [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion]
+ * "Minimal"="1"
+ */
+uint8_t creg_test_value_entry_data1[ 20 ] = {
+	0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x07, 0x00, 0x01, 0x00, 0x4d, 0x69, 0x6e, 0x69,
+	0x6d, 0x61, 0x6c, 0x31 };
 
 #if defined( __GNUC__ ) && !defined( LIBCREG_DLL_IMPORT )
 
@@ -498,6 +510,177 @@ on_error:
 	return( 0 );
 }
 
+/* Tests the libcreg_value_entry_write_data function
+ * Returns 1 if successful or 0 if not
+ */
+int creg_test_value_entry_write_data(
+     void )
+{
+	uint8_t data[ 20 ];
+
+	libcerror_error_t *error            = NULL;
+	libcreg_value_entry_t *value_entry  = NULL;
+	int result                          = 0;
+
+	/* Initialize test
+	 */
+	result = libcreg_value_entry_initialize(
+	          &value_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "value_entry",
+	 value_entry );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libcreg_value_entry_read_data(
+	          value_entry,
+	          creg_test_value_entry_data1,
+	          20,
+	          LIBCREG_CODEPAGE_WINDOWS_1252,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	/* Test regular cases
+	 */
+	memory_set(
+	 data,
+	 0xaa,
+	 20 );
+
+	result = libcreg_value_entry_write_data(
+	          value_entry,
+	          data,
+	          20,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = memory_compare(
+	          data,
+	          creg_test_value_entry_data1,
+	          20 );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	/* Test error cases
+	 */
+	result = libcreg_value_entry_write_data(
+	          NULL,
+	          data,
+	          20,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	result = libcreg_value_entry_write_data(
+	          value_entry,
+	          NULL,
+	          20,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	result = libcreg_value_entry_write_data(
+	          value_entry,
+	          data,
+	          19,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	/* Clean up
+	 */
+	result = libcreg_value_entry_free(
+	          &value_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "value_entry",
+	 value_entry );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	return( 1 );
+
+on_error:
+	if( error != NULL )
+	{
+		libcerror_error_free(
+		 &error );
+	}
+	if( value_entry != NULL )
+	{
+		libcreg_value_entry_free(
+		 &value_entry,
+		 NULL );
+	}
+	return( 0 );
+}
+
 #endif /* defined( __GNUC__ ) && !defined( LIBCREG_DLL_IMPORT ) */
 
 /* The main program
@@ -528,6 +711,10 @@ int main(
 	CREG_TEST_RUN(
 	 "libcreg_value_entry_read_data",
 	 creg_test_value_entry_read_data );
+
+	CREG_TEST_RUN(
+	 "libcreg_value_entry_write_data",
+	 creg_test_value_entry_write_data );
 
 	CREG_TEST_RUN(
 	 "libcreg_value_entry_get_data_size",

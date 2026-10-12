@@ -94,6 +94,13 @@ int libcreg_key_name_entry_read_values(
      int ascii_codepage,
      libcerror_error_t **error );
 
+int libcreg_key_name_entry_write_data(
+     libcreg_key_name_entry_t *key_name_entry,
+     uint8_t *data,
+     size_t data_size,
+     uint16_t data_block_number,
+     libcerror_error_t **error );
+
 int libcreg_key_name_entry_get_name_size(
      libcreg_key_name_entry_t *key_name_entry,
      size_t *name_size,

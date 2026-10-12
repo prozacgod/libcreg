@@ -96,6 +96,27 @@ on_error:
 	return( 0 );
 }
 
+/* Tests the libcreg_get_access_flags_write function
+ * Returns 1 if successful or 0 if not
+ */
+int creg_test_get_access_flags_write(
+     void )
+{
+	int access_flags = 0;
+
+	access_flags = libcreg_get_access_flags_write();
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "access_flags",
+	 access_flags,
+	 LIBCREG_ACCESS_FLAG_WRITE );
+
+	return( 1 );
+
+on_error:
+	return( 0 );
+}
+
 /* Tests the libcreg_get_codepage function
  * Returns 1 if successful or 0 if not
  */
@@ -756,6 +777,10 @@ int main(
 	CREG_TEST_RUN(
 	 "libcreg_get_access_flags_read",
 	 creg_test_get_access_flags_read );
+
+	CREG_TEST_RUN(
+	 "libcreg_get_access_flags_write",
+	 creg_test_get_access_flags_write );
 
 	CREG_TEST_RUN(
 	 "libcreg_get_codepage",

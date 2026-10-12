@@ -55,6 +55,7 @@ check_PROGRAMS = \
 
 creg_test_data_block_SOURCES = \
 	creg_test_data_block.c \
+	creg_test_libbfio.h \
 	creg_test_libcerror.h \
 	creg_test_libcreg.h \
 	creg_test_macros.h \
@@ -62,6 +63,7 @@ creg_test_data_block_SOURCES = \
 	creg_test_unused.h
 
 creg_test_data_block_LDADD = \
+	@LIBBFIO_LIBADD@ \
 	../libcreg/libcreg.la \
 	@LIBCERROR_LIBADD@
 
@@ -116,6 +118,7 @@ creg_test_file_LDADD = \
 
 creg_test_io_handle_SOURCES = \
 	creg_test_io_handle.c \
+	creg_test_libbfio.h \
 	creg_test_libcerror.h \
 	creg_test_libcreg.h \
 	creg_test_macros.h \
@@ -123,6 +126,7 @@ creg_test_io_handle_SOURCES = \
 	creg_test_unused.h
 
 creg_test_io_handle_LDADD = \
+	@LIBBFIO_LIBADD@ \
 	../libcreg/libcreg.la \
 	@LIBCERROR_LIBADD@
 

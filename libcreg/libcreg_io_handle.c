@@ -373,6 +373,124 @@ int libcreg_io_handle_read_file_header(
 	return( 1 );
 }
 
+/* Writes the file header
+ * Returns 1 if successful or -1 on error
+ */
+int libcreg_io_handle_write_file_header(
+     libcreg_io_handle_t *io_handle,
+     libbfio_handle_t *file_io_handle,
+     uint16_t number_of_data_blocks,
+     libcerror_error_t **error )
+{
+	creg_file_header_t file_header;
+
+	static char *function = "libcreg_io_handle_write_file_header";
+	ssize_t write_count   = 0;
+
+	if( io_handle == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid IO handle.",
+		 function );
+
+		return( -1 );
+	}
+	if( memory_set(
+	     &file_header,
+	     0,
+	     sizeof( creg_file_header_t ) ) == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_MEMORY,
+		 LIBCERROR_MEMORY_ERROR_SET_FAILED,
+		 "%s: unable to clear file header.",
+		 function );
+
+		return( -1 );
+	}
+	if( memory_copy(
+	     file_header.signature,
+	     creg_file_signature,
+	     4 ) == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_MEMORY,
+		 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
+		 "%s: unable to set signature.",
+		 function );
+
+		return( -1 );
+	}
+	byte_stream_copy_from_uint16_little_endian(
+	 file_header.minor_version,
+	 io_handle->minor_version );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 file_header.major_version,
+	 io_handle->major_version );
+
+	byte_stream_copy_from_uint32_little_endian(
+	 file_header.data_blocks_list_offset,
+	 io_handle->data_blocks_list_offset );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 file_header.number_of_data_blocks,
+	 number_of_data_blocks );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 file_header.flags,
+	 0x0021 );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 file_header.unknown3,
+	 0 );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 file_header.unknown4,
+	 1 );
+
+#if defined( HAVE_DEBUG_OUTPUT )
+	if( libcnotify_verbose != 0 )
+	{
+		libcnotify_printf(
+		 "%s: writing file header at offset: 0 (0x00000000)\n",
+		 function );
+
+		libcnotify_printf(
+		 "%s: file header:\n",
+		 function );
+		libcnotify_print_data(
+		 (uint8_t *) &file_header,
+		 sizeof( creg_file_header_t ),
+		 LIBCNOTIFY_PRINT_DATA_FLAG_GROUP_DATA );
+	}
+#endif
+	write_count = libbfio_handle_write_buffer_at_offset(
+	               file_io_handle,
+	               (uint8_t *) &file_header,
+	               sizeof( creg_file_header_t ),
+	               0,
+	               error );
+
+	if( write_count != (ssize_t) sizeof( creg_file_header_t ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_IO,
+		 LIBCERROR_IO_ERROR_WRITE_FAILED,
+		 "%s: unable to write file header data at offset: 0 (0x00000000).",
+		 function );
+
+		return( -1 );
+	}
+	return( 1 );
+}
+
 /* Reads a key hierarchy entry
  * Callback function for the key hiearachy area
  * Returns 1 if successful or -1 on error

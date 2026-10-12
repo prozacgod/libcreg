@@ -21,6 +21,7 @@
 
 #include <common.h>
 #include <file_stream.h>
+#include <memory.h>
 #include <types.h>
 
 #if defined( HAVE_STDLIB_H ) || defined( WINAPI )
@@ -38,6 +39,21 @@
 uint8_t creg_test_key_name_entry_data1[ 28 ] = {
 	0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1c, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x53, 0x6f, 0x66, 0x74, 0x77, 0x61, 0x72, 0x65 };
+
+/* Key name entry of a SYSTEM.DAT created by the Windows 98 SE REGEDIT.EXE from:
+ *
+ * REGEDIT4
+ *
+ * [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion]
+ * "Minimal"="1"
+ *
+ * The CurrentVersion key, which contains the value "Minimal"
+ */
+uint8_t creg_test_key_name_entry_data2[ 54 ] = {
+	0x36, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x01, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x43, 0x75, 0x72, 0x72, 0x65, 0x6e, 0x74, 0x56, 0x65, 0x72, 0x73, 0x69,
+	0x6f, 0x6e, 0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x07, 0x00, 0x01, 0x00, 0x4d, 0x69,
+	0x6e, 0x69, 0x6d, 0x61, 0x6c, 0x31 };
 
 #if defined( __GNUC__ ) && !defined( LIBCREG_DLL_IMPORT )
 
@@ -637,6 +653,244 @@ on_error:
 	return( 0 );
 }
 
+/* Tests the libcreg_key_name_entry_write_data function
+ * Returns 1 if successful or 0 if not
+ */
+int creg_test_key_name_entry_write_data(
+     void )
+{
+	uint8_t data[ 54 ];
+
+	libcerror_error_t *error                 = NULL;
+	libcreg_key_name_entry_t *key_name_entry = NULL;
+	int result                               = 0;
+
+	/* Test regular cases
+	 */
+	result = libcreg_key_name_entry_initialize(
+	          &key_name_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libcreg_key_name_entry_read_data(
+	          key_name_entry,
+	          creg_test_key_name_entry_data1,
+	          28,
+	          LIBCREG_CODEPAGE_WINDOWS_1252,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	memory_set(
+	 data,
+	 0xaa,
+	 28 );
+
+	result = libcreg_key_name_entry_write_data(
+	          key_name_entry,
+	          data,
+	          28,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = memory_compare(
+	          data,
+	          creg_test_key_name_entry_data1,
+	          28 );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	result = libcreg_key_name_entry_free(
+	          &key_name_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libcreg_key_name_entry_initialize(
+	          &key_name_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libcreg_key_name_entry_read_data(
+	          key_name_entry,
+	          creg_test_key_name_entry_data2,
+	          54,
+	          LIBCREG_CODEPAGE_WINDOWS_1252,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	memory_set(
+	 data,
+	 0xaa,
+	 54 );
+
+	result = libcreg_key_name_entry_write_data(
+	          key_name_entry,
+	          data,
+	          54,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = memory_compare(
+	          data,
+	          creg_test_key_name_entry_data2,
+	          54 );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	/* Test error cases
+	 */
+	result = libcreg_key_name_entry_write_data(
+	          NULL,
+	          data,
+	          54,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	result = libcreg_key_name_entry_write_data(
+	          key_name_entry,
+	          NULL,
+	          54,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	result = libcreg_key_name_entry_write_data(
+	          key_name_entry,
+	          data,
+	          53,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	/* Clean up
+	 */
+	result = libcreg_key_name_entry_free(
+	          &key_name_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	return( 1 );
+
+on_error:
+	if( error != NULL )
+	{
+		libcerror_error_free(
+		 &error );
+	}
+	if( key_name_entry != NULL )
+	{
+		libcreg_key_name_entry_free(
+		 &key_name_entry,
+		 NULL );
+	}
+	return( 0 );
+}
+
 #endif /* defined( __GNUC__ ) && !defined( LIBCREG_DLL_IMPORT ) */
 
 /* The main program
@@ -679,6 +933,10 @@ int main(
 	CREG_TEST_RUN(
 	 "libcreg_key_name_entry_read_data",
 	 creg_test_key_name_entry_read_data );
+
+	CREG_TEST_RUN(
+	 "libcreg_key_name_entry_write_data",
+	 creg_test_key_name_entry_write_data );
 
 	/* TODO: add tests for libcreg_key_name_entry_read_values */
 

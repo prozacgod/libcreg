@@ -82,6 +82,12 @@ int libcreg_io_handle_read_file_header(
      uint16_t *number_of_data_blocks,
      libcerror_error_t **error );
 
+int libcreg_io_handle_write_file_header(
+     libcreg_io_handle_t *io_handle,
+     libbfio_handle_t *file_io_handle,
+     uint16_t number_of_data_blocks,
+     libcerror_error_t **error );
+
 int libcreg_io_handle_read_key_hierarchy_entry(
      intptr_t *data_handle,
      libbfio_handle_t *file_io_handle,

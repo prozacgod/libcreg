@@ -21,6 +21,7 @@
 
 #include <common.h>
 #include <file_stream.h>
+#include <memory.h>
 #include <types.h>
 
 #if defined( HAVE_STDLIB_H ) || defined( WINAPI )
@@ -34,6 +35,25 @@
 #include "creg_test_unused.h"
 
 #include "../libcreg/libcreg_key_hierarchy_entry.h"
+
+/* Key hierarchy entries of a SYSTEM.DAT created by the Windows 98 SE
+ * REGEDIT.EXE from:
+ *
+ * REGEDIT4
+ *
+ * [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion]
+ * "Minimal"="1"
+ *
+ * creg_test_key_hierarchy_entry_data1 is the root key at offset 0x20 and
+ * creg_test_key_hierarchy_entry_data2 the Software key at offset 0x3c
+ */
+uint8_t creg_test_key_hierarchy_entry_data1[ 28 ] = {
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+	0x3c, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
+uint8_t creg_test_key_hierarchy_entry_data2[ 28 ] = {
+	0x00, 0x00, 0x00, 0x00, 0x6b, 0x02, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x20, 0x00, 0x00, 0x00,
+	0x58, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00 };
 
 #if defined( __GNUC__ ) && !defined( LIBCREG_DLL_IMPORT )
 
@@ -375,6 +395,300 @@ on_error:
 	return( 0 );
 }
 
+/* Tests the libcreg_key_hierarchy_entry_write_data function
+ * Returns 1 if successful or 0 if not
+ */
+int creg_test_key_hierarchy_entry_write_data(
+     void )
+{
+	uint8_t data[ 28 ];
+
+	libcerror_error_t *error                                = NULL;
+	libcreg_key_hierarchy_entry_t *key_hierarchy_entry      = NULL;
+	libcreg_key_hierarchy_entry_t *read_key_hierarchy_entry = NULL;
+	int result                                              = 0;
+
+	/* Initialize test
+	 */
+	result = libcreg_key_hierarchy_entry_initialize(
+	          &key_hierarchy_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "key_hierarchy_entry",
+	 key_hierarchy_entry );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libcreg_key_hierarchy_entry_initialize(
+	          &read_key_hierarchy_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	/* Test regular cases
+	 *
+	 * The next free key hierarchy entry offset (bytes 8 - 11) is not compared,
+	 * in an entry that is in use REGEDIT.EXE leaves it as it was in the free
+	 * entry the key hierarchy entry was allocated from.
+	 */
+	key_hierarchy_entry->name_hash             = 0;
+	key_hierarchy_entry->parent_key_offset     = 0xffffffffUL;
+	key_hierarchy_entry->sub_key_offset        = 0x0000003cUL;
+	key_hierarchy_entry->next_key_offset       = 0xffffffffUL;
+	key_hierarchy_entry->key_name_entry_number = 0xffff;
+	key_hierarchy_entry->data_block_number     = 0xffff;
+
+	memory_set(
+	 data,
+	 0xaa,
+	 28 );
+
+	result = libcreg_key_hierarchy_entry_write_data(
+	          key_hierarchy_entry,
+	          data,
+	          28,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = memory_compare(
+	          data,
+	          creg_test_key_hierarchy_entry_data1,
+	          8 );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	result = memory_compare(
+	          &( data[ 12 ] ),
+	          &( creg_test_key_hierarchy_entry_data1[ 12 ] ),
+	          16 );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	key_hierarchy_entry->name_hash             = 0x0000026bUL;
+	key_hierarchy_entry->parent_key_offset     = 0x00000020UL;
+	key_hierarchy_entry->sub_key_offset        = 0x00000058UL;
+	key_hierarchy_entry->next_key_offset       = 0xffffffffUL;
+	key_hierarchy_entry->key_name_entry_number = 0;
+	key_hierarchy_entry->data_block_number     = 0;
+
+	memory_set(
+	 data,
+	 0xaa,
+	 28 );
+
+	result = libcreg_key_hierarchy_entry_write_data(
+	          key_hierarchy_entry,
+	          data,
+	          28,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = memory_compare(
+	          data,
+	          creg_test_key_hierarchy_entry_data2,
+	          8 );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	result = memory_compare(
+	          &( data[ 12 ] ),
+	          &( creg_test_key_hierarchy_entry_data2[ 12 ] ),
+	          16 );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	/* Read back the written key hierarchy entry
+	 */
+	result = libcreg_key_hierarchy_entry_read_data(
+	          read_key_hierarchy_entry,
+	          data,
+	          28,
+	          0x3c,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	CREG_TEST_ASSERT_EQUAL_UINT32(
+	 "read_key_hierarchy_entry->name_hash",
+	 read_key_hierarchy_entry->name_hash,
+	 (uint32_t) 0x0000026bUL );
+
+	CREG_TEST_ASSERT_EQUAL_UINT32(
+	 "read_key_hierarchy_entry->parent_key_offset",
+	 read_key_hierarchy_entry->parent_key_offset,
+	 (uint32_t) 0x00000020UL );
+
+	CREG_TEST_ASSERT_EQUAL_UINT32(
+	 "read_key_hierarchy_entry->sub_key_offset",
+	 read_key_hierarchy_entry->sub_key_offset,
+	 (uint32_t) 0x00000058UL );
+
+	CREG_TEST_ASSERT_EQUAL_UINT32(
+	 "read_key_hierarchy_entry->next_key_offset",
+	 read_key_hierarchy_entry->next_key_offset,
+	 (uint32_t) 0xffffffffUL );
+
+	/* Test error cases
+	 */
+	result = libcreg_key_hierarchy_entry_write_data(
+	          NULL,
+	          data,
+	          28,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	result = libcreg_key_hierarchy_entry_write_data(
+	          key_hierarchy_entry,
+	          NULL,
+	          28,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	result = libcreg_key_hierarchy_entry_write_data(
+	          key_hierarchy_entry,
+	          data,
+	          27,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	/* Clean up
+	 */
+	result = libcreg_key_hierarchy_entry_free(
+	          &read_key_hierarchy_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libcreg_key_hierarchy_entry_free(
+	          &key_hierarchy_entry,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "key_hierarchy_entry",
+	 key_hierarchy_entry );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	return( 1 );
+
+on_error:
+	if( error != NULL )
+	{
+		libcerror_error_free(
+		 &error );
+	}
+	if( read_key_hierarchy_entry != NULL )
+	{
+		libcreg_key_hierarchy_entry_free(
+		 &read_key_hierarchy_entry,
+		 NULL );
+	}
+	if( key_hierarchy_entry != NULL )
+	{
+		libcreg_key_hierarchy_entry_free(
+		 &key_hierarchy_entry,
+		 NULL );
+	}
+	return( 0 );
+}
+
 #endif /* defined( __GNUC__ ) && !defined( LIBCREG_DLL_IMPORT ) */
 
 /* The main program
@@ -405,6 +719,10 @@ int main(
 	CREG_TEST_RUN(
 	 "libcreg_key_hierarchy_entry_read_data",
 	 creg_test_key_hierarchy_entry_read_data );
+
+	CREG_TEST_RUN(
+	 "libcreg_key_hierarchy_entry_write_data",
+	 creg_test_key_hierarchy_entry_write_data );
 
 #endif /* defined( __GNUC__ ) && !defined( LIBCREG_DLL_IMPORT ) */
 

@@ -21,12 +21,14 @@
 
 #include <common.h>
 #include <file_stream.h>
+#include <memory.h>
 #include <types.h>
 
 #if defined( HAVE_STDLIB_H ) || defined( WINAPI )
 #include <stdlib.h>
 #endif
 
+#include "creg_test_libbfio.h"
 #include "creg_test_libcerror.h"
 #include "creg_test_libcreg.h"
 #include "creg_test_macros.h"
@@ -34,6 +36,33 @@
 #include "creg_test_unused.h"
 
 #include "../libcreg/libcreg_data_block.h"
+
+/* Start of the data block of a SYSTEM.DAT created by the Windows 98 SE
+ * REGEDIT.EXE from:
+ *
+ * REGEDIT4
+ *
+ * [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion]
+ * "Minimal"="1"
+ *
+ * The data block is 4096 bytes of size, it contains the data block header,
+ * the key name entries and the start of the free key name entry at offset
+ * 0xaa that spans the rest of the data block.
+ */
+uint8_t creg_test_data_block_data1[ 182 ] = {
+	0x52, 0x47, 0x44, 0x42, 0x00, 0x10, 0x00, 0x00, 0x56, 0x0f, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
+	0xaa, 0x00, 0x00, 0x00, 0x03, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1c, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x53, 0x6f, 0x66, 0x74, 0x77, 0x61, 0x72, 0x65, 0x1d, 0x00, 0x00, 0x00,
+	0x01, 0x00, 0x00, 0x00, 0x1d, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x4d, 0x69, 0x63, 0x72, 0x6f, 0x73, 0x6f, 0x66, 0x74, 0x1b, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00,
+	0x00, 0x1b, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x57, 0x69, 0x6e,
+	0x64, 0x6f, 0x77, 0x73, 0x36, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00,
+	0x0e, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x43, 0x75, 0x72, 0x72, 0x65, 0x6e, 0x74, 0x56,
+	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x07, 0x00,
+	0x01, 0x00, 0x4d, 0x69, 0x6e, 0x69, 0x6d, 0x61, 0x6c, 0x31, 0x56, 0x0f, 0x00, 0x00, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
 
 #if defined( __GNUC__ ) && !defined( LIBCREG_DLL_IMPORT )
 
@@ -388,6 +417,286 @@ on_error:
 	return( 0 );
 }
 
+/* Tests the libcreg_data_block_write_data function
+ * Returns 1 if successful or 0 if not
+ */
+int creg_test_data_block_write_data(
+     void )
+{
+	uint8_t block_data[ 4096 ];
+	uint8_t data[ 4096 ];
+
+	libbfio_handle_t *file_io_handle   = NULL;
+	libcerror_error_t *error           = NULL;
+	libcreg_data_block_t *data_block   = NULL;
+	int result                         = 0;
+
+	/* Initialize test
+	 */
+	memory_set(
+	 block_data,
+	 0,
+	 4096 );
+
+	memory_copy(
+	 block_data,
+	 creg_test_data_block_data1,
+	 182 );
+
+	result = libbfio_memory_range_initialize(
+	          &file_io_handle,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libbfio_memory_range_set(
+	          file_io_handle,
+	          block_data,
+	          4096,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libbfio_handle_open(
+	          file_io_handle,
+	          LIBBFIO_OPEN_READ,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libcreg_data_block_initialize(
+	          &data_block,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libcreg_data_block_read_header(
+	          data_block,
+	          file_io_handle,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libcreg_data_block_read_entries(
+	          data_block,
+	          file_io_handle,
+	          LIBCREG_CODEPAGE_WINDOWS_1252,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	/* Test regular cases
+	 *
+	 * Bytes 0x18 - 0x1f of the data block header and the free key name entry
+	 * after its first 12 bytes are not compared, REGEDIT.EXE does not set them.
+	 */
+	memory_set(
+	 data,
+	 0xaa,
+	 4096 );
+
+	result = libcreg_data_block_write_data(
+	          data_block,
+	          data,
+	          4096,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = memory_compare(
+	          data,
+	          creg_test_data_block_data1,
+	          24 );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	result = memory_compare(
+	          &( data[ 32 ] ),
+	          &( creg_test_data_block_data1[ 32 ] ),
+	          182 - 32 );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	/* Test error cases
+	 */
+	result = libcreg_data_block_write_data(
+	          NULL,
+	          data,
+	          4096,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	result = libcreg_data_block_write_data(
+	          data_block,
+	          NULL,
+	          4096,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	result = libcreg_data_block_write_data(
+	          data_block,
+	          data,
+	          4095,
+	          0,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 -1 );
+
+	CREG_TEST_ASSERT_IS_NOT_NULL(
+	 "error",
+	 error );
+
+	libcerror_error_free(
+	 &error );
+
+	/* Clean up
+	 */
+	result = libcreg_data_block_free(
+	          &data_block,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libbfio_handle_close(
+	          file_io_handle,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 0 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	result = libbfio_handle_free(
+	          &file_io_handle,
+	          &error );
+
+	CREG_TEST_ASSERT_EQUAL_INT(
+	 "result",
+	 result,
+	 1 );
+
+	CREG_TEST_ASSERT_IS_NULL(
+	 "error",
+	 error );
+
+	return( 1 );
+
+on_error:
+	if( error != NULL )
+	{
+		libcerror_error_free(
+		 &error );
+	}
+	if( data_block != NULL )
+	{
+		libcreg_data_block_free(
+		 &data_block,
+		 NULL );
+	}
+	if( file_io_handle != NULL )
+	{
+		libbfio_handle_free(
+		 &file_io_handle,
+		 NULL );
+	}
+	return( 0 );
+}
+
 #endif /* defined( __GNUC__ ) && !defined( LIBCREG_DLL_IMPORT ) */
 
 /* The main program
@@ -418,6 +727,10 @@ int main(
 	/* TODO: add tests for libcreg_data_block_read_header */
 
 	/* TODO: add tests for libcreg_data_block_read_entries */
+
+	CREG_TEST_RUN(
+	 "libcreg_data_block_write_data",
+	 creg_test_data_block_write_data );
 
 	CREG_TEST_RUN(
 	 "libcreg_data_block_get_number_of_entries",

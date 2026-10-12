@@ -44,6 +44,10 @@ int libcreg_get_access_flags_read(
      void );
 
 LIBCREG_EXTERN \
+int libcreg_get_access_flags_write(
+     void );
+
+LIBCREG_EXTERN \
 int libcreg_get_codepage(
      int *codepage,
      libcerror_error_t **error );

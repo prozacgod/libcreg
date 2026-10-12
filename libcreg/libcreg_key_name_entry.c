@@ -662,6 +662,240 @@ on_error:
 	return( -1 );
 }
 
+/* Writes a key name entry
+ * Returns 1 if successful or -1 on error
+ */
+int libcreg_key_name_entry_write_data(
+     libcreg_key_name_entry_t *key_name_entry,
+     uint8_t *data,
+     size_t data_size,
+     uint16_t data_block_number,
+     libcerror_error_t **error )
+{
+	libcreg_value_entry_t *value_entry = NULL;
+	static char *function              = "libcreg_key_name_entry_write_data";
+	size_t data_offset                 = 0;
+	int entry_index                    = 0;
+	int number_of_entries              = 0;
+
+	if( key_name_entry == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid key name entry.",
+		 function );
+
+		return( -1 );
+	}
+	if( ( key_name_entry->name == NULL )
+	 && ( key_name_entry->name_size > 0 ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+		 "%s: invalid key name entry - missing name.",
+		 function );
+
+		return( -1 );
+	}
+	if( data == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_INVALID_VALUE,
+		 "%s: invalid data.",
+		 function );
+
+		return( -1 );
+	}
+	if( ( data_size < sizeof( creg_key_name_entry_t ) )
+	 || ( data_size != (size_t) key_name_entry->size ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_ARGUMENTS,
+		 LIBCERROR_ARGUMENT_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid data size value out of bounds.",
+		 function );
+
+		return( -1 );
+	}
+	if( libcdata_array_get_number_of_entries(
+	     key_name_entry->entries_array,
+	     &number_of_entries,
+	     error ) != 1 )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+		 "%s: unable to retrieve number of value entries.",
+		 function );
+
+		return( -1 );
+	}
+	if( ( number_of_entries < 0 )
+	 || ( number_of_entries > (int) UINT16_MAX ) )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+		 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+		 "%s: invalid number of value entries value out of bounds.",
+		 function );
+
+		return( -1 );
+	}
+	if( memory_set(
+	     data,
+	     0,
+	     sizeof( creg_key_name_entry_t ) ) == NULL )
+	{
+		libcerror_error_set(
+		 error,
+		 LIBCERROR_ERROR_DOMAIN_MEMORY,
+		 LIBCERROR_MEMORY_ERROR_SET_FAILED,
+		 "%s: unable to clear data.",
+		 function );
+
+		return( -1 );
+	}
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_key_name_entry_t *) data )->size,
+	 key_name_entry->size );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_key_name_entry_t *) data )->index,
+	 key_name_entry->index );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_key_name_entry_t *) data )->unknown1,
+	 data_block_number );
+
+	byte_stream_copy_from_uint32_little_endian(
+	 ( (creg_key_name_entry_t *) data )->used_size,
+	 key_name_entry->size );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_key_name_entry_t *) data )->name_size,
+	 key_name_entry->name_size );
+
+	byte_stream_copy_from_uint16_little_endian(
+	 ( (creg_key_name_entry_t *) data )->number_of_values,
+	 (uint16_t) number_of_entries );
+
+	data_offset = sizeof( creg_key_name_entry_t );
+
+	if( key_name_entry->name_size > 0 )
+	{
+		if( key_name_entry->name_size > ( data_size - data_offset ) )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+			 "%s: invalid name size value out of bounds.",
+			 function );
+
+			return( -1 );
+		}
+		if( memory_copy(
+		     &( data[ data_offset ] ),
+		     key_name_entry->name,
+		     (size_t) key_name_entry->name_size ) == NULL )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_MEMORY,
+			 LIBCERROR_MEMORY_ERROR_COPY_FAILED,
+			 "%s: unable to copy name.",
+			 function );
+
+			return( -1 );
+		}
+		data_offset += key_name_entry->name_size;
+	}
+	for( entry_index = 0;
+	     entry_index < number_of_entries;
+	     entry_index++ )
+	{
+		if( libcdata_array_get_entry_by_index(
+		     key_name_entry->entries_array,
+		     entry_index,
+		     (intptr_t **) &value_entry,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_GET_FAILED,
+			 "%s: unable to retrieve value entry: %d.",
+			 function,
+			 entry_index );
+
+			return( -1 );
+		}
+		if( value_entry == NULL )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_VALUE_MISSING,
+			 "%s: missing value entry: %d.",
+			 function,
+			 entry_index );
+
+			return( -1 );
+		}
+		if( (size_t) value_entry->size > ( data_size - data_offset ) )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_RUNTIME,
+			 LIBCERROR_RUNTIME_ERROR_VALUE_OUT_OF_BOUNDS,
+			 "%s: invalid value entry: %d size value out of bounds.",
+			 function,
+			 entry_index );
+
+			return( -1 );
+		}
+		if( libcreg_value_entry_write_data(
+		     value_entry,
+		     &( data[ data_offset ] ),
+		     (size_t) value_entry->size,
+		     error ) != 1 )
+		{
+			libcerror_error_set(
+			 error,
+			 LIBCERROR_ERROR_DOMAIN_IO,
+			 LIBCERROR_IO_ERROR_WRITE_FAILED,
+			 "%s: unable to write value entry: %d.",
+			 function,
+			 entry_index );
+
+			return( -1 );
+		}
+		data_offset += value_entry->size;
+	}
+#if defined( HAVE_DEBUG_OUTPUT )
+	if( libcnotify_verbose != 0 )
+	{
+		libcnotify_printf(
+		 "%s: data:\n",
+		 function );
+		libcnotify_print_data(
+		 data,
+		 data_size,
+		 LIBCNOTIFY_PRINT_DATA_FLAG_GROUP_DATA );
+	}
+#endif
+	return( 1 );
+}
+
 /* Retrieves the key name size
  * Returns 1 if successful or -1 on error
  */
